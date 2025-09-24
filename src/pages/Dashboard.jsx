@@ -1,527 +1,532 @@
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import { useAuth } from "../context/AuthContext";
-import QRGenerator from "../components/QRGenerator";
-import { useNavigate } from "react-router-dom";
+	LineChart,
+	Line,
+	XAxis,
+	YAxis,
+	Tooltip,
+	ResponsiveContainer,
+	CartesianGrid,
+} from 'recharts';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import { useAuth } from '../context/AuthContext';
+import QRGenerator from '../components/QRGenerator';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 // --- NEW COMPONENT: ANIMATED STAT CARD ---
 const StatCard = ({ title, value, unit, delay = 0.2, colors }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.6, delay }}
-    whileHover={{ y: -5, scale: 1.05 }}
-    className={`bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50 ${colors.bg}`}
-  >
-    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-      {title}
-    </p>
-    <h3 className={`text-3xl font-extrabold mt-1 ${colors.text}`}>
-      <span className="count-up">{value}</span>
-      <span className="text-xl font-semibold text-gray-700 dark:text-gray-200 ml-1">
-        {unit}
-      </span>
-    </h3>
-  </motion.div>
+	<motion.div
+		initial={{ opacity: 0, scale: 0.95 }}
+		animate={{ opacity: 1, scale: 1 }}
+		transition={{ duration: 0.6, delay }}
+		whileHover={{ y: -5, scale: 1.05 }}
+		className={`bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50 ${colors.bg}`}
+	>
+		<p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+			{title}
+		</p>
+		<h3 className={`text-3xl font-extrabold mt-1 ${colors.text}`}>
+			<span className="count-up">{value}</span>
+			<span className="text-xl font-semibold text-gray-700 dark:text-gray-200 ml-1">
+				{unit}
+			</span>
+		</h3>
+	</motion.div>
 );
 
 // Animated attendance progress bar for students
 const AttendanceProgress = ({ myStudent, sessions }) => {
-  const totalSessions = sessions?.length || 1;
-  const attendedSessions = myStudent?.attendedSessions?.length || 0;
-  const attendancePercentage = (attendedSessions / totalSessions) * 100;
+	const totalSessions = sessions?.length || 1;
+	const attendedSessions = myStudent?.attendedSessions?.length || 0;
+	const attendancePercentage = (attendedSessions / totalSessions) * 100;
 
-  let progressColor = "bg-green-500";
-  let textColor = "text-green-500";
-  if (attendancePercentage < 75) {
-    progressColor = "bg-orange-500";
-    textColor = "text-orange-500";
-  }
-  if (attendancePercentage < 50) {
-    progressColor = "bg-red-500";
-    textColor = "text-red-500";
-  }
+	let progressColor = 'bg-green-500';
+	let textColor = 'text-green-500';
+	if (attendancePercentage < 75) {
+		progressColor = 'bg-orange-500';
+		textColor = 'text-orange-500';
+	}
+	if (attendancePercentage < 50) {
+		progressColor = 'bg-red-500';
+		textColor = 'text-red-500';
+	}
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
-      className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
-    >
-      <h3 className="font-semibold text-xl mb-2">My Attendance Summary</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-300">
-        You've attended{" "}
-        <span className="font-bold text-indigo-600 dark:text-indigo-400">
-          {attendedSessions}
-        </span>{" "}
-        out of{" "}
-        <span className="font-bold text-indigo-600 dark:text-indigo-400">
-          {totalSessions}
-        </span>{" "}
-        sessions.
-      </p>
-      <div className="mt-4 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${attendancePercentage}%` }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-          className={`h-2.5 rounded-full ${progressColor}`}
-        />
-      </div>
-      <p className={`text-right text-sm font-bold mt-2 ${textColor}`}>
-        {attendancePercentage.toFixed(1)}%
-      </p>
-    </motion.div>
-  );
+	return (
+		<motion.div
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.8 }}
+			className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
+		>
+			<h3 className="font-semibold text-xl mb-2">My Attendance Summary</h3>
+			<p className="text-sm text-gray-600 dark:text-gray-300">
+				You've attended{' '}
+				<span className="font-bold text-indigo-600 dark:text-indigo-400">
+					{attendedSessions}
+				</span>{' '}
+				out of{' '}
+				<span className="font-bold text-indigo-600 dark:text-indigo-400">
+					{totalSessions}
+				</span>{' '}
+				sessions.
+			</p>
+			<div className="mt-4 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+				<motion.div
+					initial={{ width: 0 }}
+					animate={{ width: `${attendancePercentage}%` }}
+					transition={{ duration: 1.5, ease: 'easeOut' }}
+					className={`h-2.5 rounded-full ${progressColor}`}
+				/>
+			</div>
+			<p className={`text-right text-sm font-bold mt-2 ${textColor}`}>
+				{attendancePercentage.toFixed(1)}%
+			</p>
+		</motion.div>
+	);
 };
 
 // Custom Tooltip for Recharts
 const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-gray-900/80 dark:bg-gray-200/80 backdrop-blur-md rounded-lg p-4 shadow-lg border border-gray-700 dark:border-gray-300">
-        <p className="text-sm font-semibold text-white dark:text-gray-900 mb-1">
-          {label}
-        </p>
-        <p className="text-xs text-indigo-300 dark:text-indigo-600">{`Attendance: ${payload[0].value}%`}</p>
-      </div>
-    );
-  }
-  return null;
+	if (active && payload && payload.length) {
+		return (
+			<div className="bg-gray-900/80 dark:bg-gray-200/80 backdrop-blur-md rounded-lg p-4 shadow-lg border border-gray-700 dark:border-gray-300">
+				<p className="text-sm font-semibold text-white dark:text-gray-900 mb-1">
+					{label}
+				</p>
+				<p className="text-xs text-indigo-300 dark:text-indigo-600">{`Attendance: ${payload[0].value}%`}</p>
+			</div>
+		);
+	}
+	return null;
 };
 
 // Student Card component with new hover effects
 const NewStudentCard = ({ s }) => (
-  <motion.div
-    className="p-4 rounded-xl shadow-lg bg-white dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
-    whileHover={{
-      y: -4,
-      scale: 1.01,
-      boxShadow: "0 10px 20px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.05)",
-      rotate: "1.5deg",
-    }}
-    whileTap={{ scale: 0.98, rotate: "0deg" }}
-    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-  >
-    <h4 className="text-md font-bold text-gray-800 dark:text-gray-100">
-      {s.name}
-    </h4>
-    <p className="text-sm text-gray-500 dark:text-gray-400">{s.email}</p>
-  </motion.div>
+	<motion.div
+		className="p-4 rounded-xl shadow-lg bg-white dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+		whileHover={{
+			y: -4,
+			scale: 1.01,
+			boxShadow: '0 10px 20px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.05)',
+			rotate: '1.5deg',
+		}}
+		whileTap={{ scale: 0.98, rotate: '0deg' }}
+		transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+	>
+		<h4 className="text-md font-bold text-gray-800 dark:text-gray-100">
+			{s.name}
+		</h4>
+		<p className="text-sm text-gray-500 dark:text-gray-400">{s.email}</p>
+	</motion.div>
 );
 
 // Variants for list staggering animation
 const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
+	hidden: { opacity: 0 },
+	visible: {
+		opacity: 1,
+		transition: {
+			staggerChildren: 0.1,
+		},
+	},
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 10,
-    },
-  },
+	hidden: { opacity: 0, y: 20 },
+	visible: {
+		opacity: 1,
+		y: 0,
+		transition: {
+			type: 'spring',
+			stiffness: 400,
+			damping: 10,
+		},
+	},
 };
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [students, setStudents] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [myStudent, setMyStudent] = useState(null);
+	const navigate = useNavigate();
+	const [students, setStudents] = useState([]);
+	const [sessions, setSessions] = useState([]);
+	const [myStudent, setMyStudent] = useState(null);
 
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-    setStudents(JSON.parse(localStorage.getItem("attend_students")) || []);
-    setSessions(JSON.parse(localStorage.getItem("attend_sessions")) || []);
-    if (user.role === "student") {
-      const studs = JSON.parse(localStorage.getItem("attend_students")) || [];
-      const me = studs.find((s) => s.email === user.email);
-      setMyStudent(me || null);
-    }
-  }, [user, navigate]);
+	const { user } = useSelector((state) => state.auth);
 
-  const onNavigate = (newPath) => {
-    navigate(newPath);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+	// useEffect(() => {
+	//   if (!user) {
+	//     navigate("/login");
+	//     return;
+	//   }
+	//   setStudents(JSON.parse(localStorage.getItem("attend_students")) || []);
+	//   setSessions(JSON.parse(localStorage.getItem("attend_sessions")) || []);
+	//   if (user.role === "student") {
+	//     const studs = JSON.parse(localStorage.getItem("attend_students")) || [];
+	//     const me = studs.find((s) => s.email === user.email);
+	//     setMyStudent(me || null);
+	//   }
+	// }, [user, navigate]);
 
-  if (!user) {
-    return null;
-  }
+	const onNavigate = (newPath) => {
+		navigate(newPath);
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	};
 
-  const chartData = (() => {
-    const s = sessions.slice(-7);
-    return s.map((sess) => {
-      const total = students.length || 1;
-      const attendCount = students.filter((st) =>
-        (st.attendedSessions || []).includes(sess.id)
-      ).length;
-      return {
-        name: new Date(sess.createdAt).toLocaleDateString(),
-        "Attendance %": Math.round((attendCount / total) * 100),
-      };
-    });
-  })();
+	useEffect(() => {
+		if (user == null) navigate('/signup');
+	}, [user, navigate]);
 
-  const markPresentManual = () => {
-    const currentSession = localStorage.getItem("attend_currentSession");
-    if (!currentSession)
-      return alert("No active session. Admin must start session.");
-    const studs = JSON.parse(localStorage.getItem("attend_students")) || [];
-    const me = studs.find((s) => s.email === user.email);
-    if (!me) return alert("Student record not found.");
-    if (!me.attendedSessions) me.attendedSessions = [];
-    if (me.attendedSessions.includes(currentSession))
-      return alert("Already marked present for this session.");
-    me.attendedSessions.push(currentSession);
-    localStorage.setItem("attend_students", JSON.stringify(studs));
-    setMyStudent({ ...me });
-    alert("Marked present ✅");
-  };
+	const name = user?.email.split('_')[0];
+	console.log(name);
 
-  const dashboardContent =
-    user.role === "admin" ? (
-      <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <StatCard
-            title="Total Students"
-            value={students.length}
-            unit=""
-            colors={{
-              bg: "bg-indigo-50/70 dark:bg-indigo-950/70",
-              text: "text-indigo-600 dark:text-indigo-400",
-            }}
-            delay={0.1}
-          />
-          <StatCard
-            title="Total Sessions"
-            value={sessions.length}
-            unit=""
-            colors={{
-              bg: "bg-green-50/70 dark:bg-green-950/70",
-              text: "text-green-600 dark:text-green-400",
-            }}
-            delay={0.2}
-          />
-          <StatCard
-            title="Average Attendance"
-            value={
-              chartData.length
-                ? (
-                    chartData.reduce(
-                      (acc, curr) => acc + curr["Attendance %"],
-                      0
-                    ) / chartData.length
-                  ).toFixed(0)
-                : 0
-            }
-            unit="%"
-            colors={{
-              bg: "bg-purple-50/70 dark:bg-purple-950/70",
-              text: "text-purple-600 dark:text-purple-400",
-            }}
-            delay={0.3}
-          />
-        </div>
+	const chartData = (() => {
+		const s = sessions.slice(-7);
+		return s.map((sess) => {
+			const total = students.length || 1;
+			const attendCount = students.filter((st) =>
+				(st.attendedSessions || []).includes(sess.id)
+			).length;
+			return {
+				name: new Date(sess.createdAt).toLocaleDateString(),
+				'Attendance %': Math.round((attendCount / total) * 100),
+			};
+		});
+	})();
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 dark:border-gray-700/50"
-            >
-              <h3 className="font-bold text-2xl text-indigo-700 dark:text-indigo-400 mb-2">
-                Class Attendance Trend
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                Insights from the last 7 sessions.
-              </p>
-              {chartData.length ? (
-                <div style={{ height: 260 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        strokeOpacity={0.5}
-                      />
-                      <XAxis dataKey="name" stroke="#888" />
-                      <YAxis stroke="#888" />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Line
-                        type="monotone"
-                        dataKey="Attendance %"
-                        stroke="url(#colorLineGradient)"
-                        strokeWidth={4}
-                        dot={{ stroke: "#8b5cf6", strokeWidth: 2, r: 5 }}
-                        activeDot={{ r: 8, stroke: "#8b5cf6", strokeWidth: 2 }}
-                        isAnimationActive={true}
-                        animationDuration={1500}
-                        animationEasing="ease-in-out"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="min-h-[260px] flex items-center justify-center">
-                  <p className="text-md text-gray-500 dark:text-gray-400">
-                    No sessions yet — start a session to view analytics.
-                  </p>
-                </div>
-              )}
-            </motion.div>
-            <div className="mt-8">
-              <h3 className="font-bold text-2xl text-gray-800 dark:text-gray-100 mb-4">
-                Student List
-              </h3>
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid md:grid-cols-2 gap-6"
-              >
-                {(students || []).map((s) => (
-                  <motion.div key={s.id} variants={itemVariants}>
-                    <NewStudentCard s={s} />
-                  </motion.div>
-                ))}
-              </motion.div>
-              {!students.length && (
-                <p className="text-center text-gray-500 dark:text-gray-400 mt-8">
-                  No students enrolled yet.
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              whileHover={{ scale: 1.02 }}
-            >
-              <QRGenerator />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              whileHover={{ scale: 1.02 }}
-              className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
-            >
-              <h4 className="font-semibold text-lg mb-4">Recent Sessions</h4>
-              <ul className="space-y-3">
-                <AnimatePresence>
-                  {(sessions || []).slice(0, 5).map((sess) => (
-                    <motion.li
-                      key={sess.id}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md transition-colors"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">
-                          {new Date(sess.createdAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(sess.createdAt).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </motion.li>
-                  ))}
-                </AnimatePresence>
-                {!sessions.length && (
-                  <li className="text-sm text-gray-500 dark:text-gray-400">
-                    No sessions yet.
-                  </li>
-                )}
-              </ul>
-            </motion.div>
-          </div>
-        </div>
-      </>
-    ) : (
-      // Student View
-      <>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 dark:border-gray-700/50"
-            >
-              <h3 className="font-bold text-2xl text-indigo-700 dark:text-indigo-400 mb-2">
-                Welcome, {user.name}! 👋
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Your personalized attendance and analytics are ready.
-              </p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <AttendanceProgress myStudent={myStudent} sessions={sessions} />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
-            >
-              <h4 className="font-semibold text-lg mb-2">Notifications</h4>
-              <div
-                className={`text-sm py-2 px-3 rounded-lg border ${
-                  ((myStudent?.attendedSessions?.length || 0) /
-                    (sessions?.length || 1)) *
-                    100 <
-                  75
-                    ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:border-red-800 dark:text-red-300"
-                    : "bg-green-50 text-green-700 border-green-300 dark:bg-green-950 dark:border-green-800 dark:text-green-300"
-                }`}
-              >
-                {((myStudent?.attendedSessions?.length || 0) /
-                  (sessions?.length || 1)) *
-                  100 <
-                75 ? (
-                  <span>
-                    ⚠️ Your attendance is below 75%. Please attend classes
-                    regularly.
-                  </span>
-                ) : (
-                  <span>✅ Your attendance is on track. Great job!</span>
-                )}
-              </div>
-            </motion.div>
-          </div>
-          <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              whileHover={{ scale: 1.02 }}
-              className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
-            >
-              <h4 className="font-semibold text-lg mb-4">Quick Actions</h4>
-              <div className="space-y-3">
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={markPresentManual}
-                  className="w-full py-3 px-4 rounded-full bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition transform"
-                >
-                  Scan & Mark Present
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={() => (window.location.href = "/complaint")}
-                  className="w-full py-3 px-4 rounded-full bg-transparent border-2 border-indigo-600 text-indigo-600 font-semibold hover:bg-indigo-50 transition dark:text-indigo-400 dark:border-indigo-400 dark:hover:bg-indigo-900/40"
-                >
-                  Raise a Complaint
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={() => alert("Profile page placeholder")}
-                  className="w-full py-3 px-4 rounded-full bg-transparent border-2 border-gray-300 text-gray-600 font-semibold hover:bg-gray-100 transition dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  View Profile
-                </motion.button>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </>
-    );
+	const markPresentManual = () => {
+		const currentSession = localStorage.getItem('attend_currentSession');
+		if (!currentSession)
+			return alert('No active session. Admin must start session.');
+		const studs = JSON.parse(localStorage.getItem('attend_students')) || [];
+		const me = studs.find((s) => s.email === user?.email);
+		if (!me) return alert('Student record not found.');
+		if (!me.attendedSessions) me.attendedSessions = [];
+		if (me.attendedSessions.includes(currentSession))
+			return alert('Already marked present for this session.');
+		me.attendedSessions.push(currentSession);
+		localStorage.setItem('attend_students', JSON.stringify(studs));
+		setMyStudent({ ...me });
+		alert('Marked present ✅');
+	};
 
-  const floatAnimation = {
-    initial: { y: 0 },
-    animate: {
-      y: [0, -5, 0],
-      transition: {
-        duration: 5,
-        repeat: Infinity,
-        ease: "easeInOut",
-      },
-    },
-  };
+	const dashboardContent =
+		user?.role === 'faculty' ? (
+			<>
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+					<StatCard
+						title="Total Students"
+						value={students.length}
+						unit=""
+						colors={{
+							bg: 'bg-indigo-50/70 dark:bg-indigo-950/70',
+							text: 'text-indigo-600 dark:text-indigo-400',
+						}}
+						delay={0.1}
+					/>
+					<StatCard
+						title="Total Sessions"
+						value={sessions.length}
+						unit=""
+						colors={{
+							bg: 'bg-green-50/70 dark:bg-green-950/70',
+							text: 'text-green-600 dark:text-green-400',
+						}}
+						delay={0.2}
+					/>
+					<StatCard
+						title="Average Attendance"
+						value={
+							chartData.length
+								? (
+										chartData.reduce(
+											(acc, curr) => acc + curr['Attendance %'],
+											0
+										) / chartData.length
+								  ).toFixed(0)
+								: 0
+						}
+						unit="%"
+						colors={{
+							bg: 'bg-purple-50/70 dark:bg-purple-950/70',
+							text: 'text-purple-600 dark:text-purple-400',
+						}}
+						delay={0.3}
+					/>
+				</div>
 
-  return (
-    <div
-      className="font-sans antialiased text-gray-800 dark:text-gray-100 min-h-screen flex flex-col relative overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, #1f2937, #374151)",
-      }}
-    >
-      <div className="absolute top-0 left-0 w-full h-full animate-pulse-slow bg-gradient-to-br from-indigo-500/20 to-purple-500/20 opacity-40 mix-blend-multiply pointer-events-none" />
-      <Navbar onNavigate={onNavigate} />
-      <main className="flex-grow pt-24 pb-12">
-        <div className="max-w-7xl mx-auto px-6">
-          {/* --- REVISED DASHBOARD HEADING WITH SMOOTHER ANIMATION --- */}
-          <motion.h2
-            initial={{ opacity: 0, x: -100 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="text-4xl md:text-6xl font-extrabold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400"
-          >
-            Dashboard
-          </motion.h2>
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+					<div className="lg:col-span-2 space-y-8">
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.8 }}
+							className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 dark:border-gray-700/50"
+						>
+							<h3 className="font-bold text-2xl text-indigo-700 dark:text-indigo-400 mb-2">
+								Class Attendance Trend
+							</h3>
+							<p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+								Insights from the last 7 sessions.
+							</p>
+							{chartData.length ? (
+								<div style={{ height: 260 }}>
+									<ResponsiveContainer width="100%" height="100%">
+										<LineChart data={chartData}>
+											<CartesianGrid
+												strokeDasharray="3 3"
+												strokeOpacity={0.5}
+											/>
+											<XAxis dataKey="name" stroke="#888" />
+											<YAxis stroke="#888" />
+											<Tooltip content={<CustomTooltip />} />
+											<Line
+												type="monotone"
+												dataKey="Attendance %"
+												stroke="url(#colorLineGradient)"
+												strokeWidth={4}
+												dot={{ stroke: '#8b5cf6', strokeWidth: 2, r: 5 }}
+												activeDot={{ r: 8, stroke: '#8b5cf6', strokeWidth: 2 }}
+												isAnimationActive={true}
+												animationDuration={1500}
+												animationEasing="ease-in-out"
+											/>
+										</LineChart>
+									</ResponsiveContainer>
+								</div>
+							) : (
+								<div className="min-h-[260px] flex items-center justify-center">
+									<p className="text-md text-gray-500 dark:text-gray-400">
+										No sessions yet — start a session to view analytics.
+									</p>
+								</div>
+							)}
+						</motion.div>
+						<div className="mt-8">
+							<h3 className="font-bold text-2xl text-gray-800 dark:text-gray-100 mb-4">
+								Student List
+							</h3>
+							<motion.div
+								variants={containerVariants}
+								initial="hidden"
+								animate="visible"
+								className="grid md:grid-cols-2 gap-6"
+							>
+								{(students || []).map((s) => (
+									<motion.div key={s.id} variants={itemVariants}>
+										<NewStudentCard s={s} />
+									</motion.div>
+								))}
+							</motion.div>
+							{!students.length && (
+								<p className="text-center text-gray-500 dark:text-gray-400 mt-8">
+									No students enrolled yet.
+								</p>
+							)}
+						</div>
+					</div>
+					<div className="space-y-8">
+						<motion.div
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+							transition={{ duration: 0.6, delay: 0.2 }}
+							whileHover={{ scale: 1.02 }}
+						>
+							<QRGenerator />
+						</motion.div>
+						<motion.div
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+							transition={{ duration: 0.6, delay: 0.3 }}
+							whileHover={{ scale: 1.02 }}
+							className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
+						>
+							<h4 className="font-semibold text-lg mb-4">Recent Sessions</h4>
+							<ul className="space-y-3">
+								<AnimatePresence>
+									{(sessions || []).slice(0, 5).map((sess) => (
+										<motion.li
+											key={sess.id}
+											initial={{ opacity: 0, y: -10 }}
+											animate={{ opacity: 1, y: 0 }}
+											exit={{ opacity: 0, x: -20 }}
+											transition={{ duration: 0.3 }}
+											className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md transition-colors"
+										>
+											<div className="flex justify-between items-center">
+												<span className="text-sm font-medium">
+													{new Date(sess.createdAt).toLocaleDateString()}
+												</span>
+												<span className="text-xs text-gray-500 dark:text-gray-400">
+													{new Date(sess.createdAt).toLocaleTimeString()}
+												</span>
+											</div>
+										</motion.li>
+									))}
+								</AnimatePresence>
+								{!sessions.length && (
+									<li className="text-sm text-gray-500 dark:text-gray-400">
+										No sessions yet.
+									</li>
+								)}
+							</ul>
+						</motion.div>
+					</div>
+				</div>
+			</>
+		) : (
+			// Student View
+			<>
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+					<div className="lg:col-span-2 space-y-8">
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.8 }}
+							className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 dark:border-gray-700/50"
+						>
+							<h3 className="font-bold text-2xl text-indigo-700 dark:text-indigo-400 mb-2">
+								Welcome, {name}! 👋
+							</h3>
+							<p className="text-gray-600 dark:text-gray-300">
+								Your personalized attendance and analytics are ready.
+							</p>
+						</motion.div>
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.8, delay: 0.2 }}
+						>
+							<AttendanceProgress myStudent={myStudent} sessions={sessions} />
+						</motion.div>
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.8, delay: 0.4 }}
+							className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
+						>
+							<h4 className="font-semibold text-lg mb-2">Notifications</h4>
+							<div
+								className={`text-sm py-2 px-3 rounded-lg border ${
+									((myStudent?.attendedSessions?.length || 0) /
+										(sessions?.length || 1)) *
+										100 <
+									75
+										? 'bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:border-red-800 dark:text-red-300'
+										: 'bg-green-50 text-green-700 border-green-300 dark:bg-green-950 dark:border-green-800 dark:text-green-300'
+								}`}
+							>
+								{((myStudent?.attendedSessions?.length || 0) /
+									(sessions?.length || 1)) *
+									100 <
+								75 ? (
+									<span>
+										⚠️ Your attendance is below 75%. Please attend classes
+										regularly.
+									</span>
+								) : (
+									<span>✅ Your attendance is on track. Great job!</span>
+								)}
+							</div>
+						</motion.div>
+					</div>
+					<div className="space-y-8">
+						<motion.div
+							initial={{ opacity: 0, scale: 0.95 }}
+							animate={{ opacity: 1, scale: 1 }}
+							transition={{ duration: 0.6, delay: 0.2 }}
+							whileHover={{ scale: 1.02 }}
+							className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
+						>
+							<h4 className="font-semibold text-lg mb-4">Quick Actions</h4>
+							<div className="space-y-3">
+								<motion.button
+									whileHover={{ scale: 1.01 }}
+									whileTap={{ scale: 0.99 }}
+									onClick={markPresentManual}
+									className="w-full py-3 px-4 rounded-full bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition transform"
+								>
+									Scan & Mark Present
+								</motion.button>
+								<motion.button
+									whileHover={{ scale: 1.01 }}
+									whileTap={{ scale: 0.99 }}
+									onClick={() => (window.location.href = '/complaint')}
+									className="w-full py-3 px-4 rounded-full bg-transparent border-2 border-indigo-600 text-indigo-600 font-semibold hover:bg-indigo-50 transition dark:text-indigo-400 dark:border-indigo-400 dark:hover:bg-indigo-900/40"
+								>
+									Raise a Complaint
+								</motion.button>
+								<motion.button
+									whileHover={{ scale: 1.01 }}
+									whileTap={{ scale: 0.99 }}
+									onClick={() => alert('Profile page placeholder')}
+									className="w-full py-3 px-4 rounded-full bg-transparent border-2 border-gray-300 text-gray-600 font-semibold hover:bg-gray-100 transition dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+								>
+									View Profile
+								</motion.button>
+							</div>
+						</motion.div>
+					</div>
+				</div>
+			</>
+		);
 
-          <motion.div
-            className="relative"
-            variants={floatAnimation}
-            initial="initial"
-            animate="animate"
-          >
-            {dashboardContent}
-          </motion.div>
-        </div>
-      </main>
-      <Footer onNavigate={onNavigate} />
-      <svg className="hidden">
-        <defs>
-          <linearGradient id="colorLineGradient" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#ef4444" />
-            <stop offset="25%" stopColor="#f97316" />
-            <stop offset="50%" stopColor="#eab308" />
-            <stop offset="75%" stopColor="#84cc16" />
-            <stop offset="100%" stopColor="#22c55e" />
-          </linearGradient>
-        </defs>
-      </svg>
-    </div>
-  );
+	const floatAnimation = {
+		initial: { y: 0 },
+		animate: {
+			y: [0, -5, 0],
+			transition: {
+				duration: 5,
+				repeat: Infinity,
+				ease: 'easeInOut',
+			},
+		},
+	};
+
+	return (
+		<div
+			className="font-sans antialiased text-gray-800 dark:text-gray-100 min-h-screen flex flex-col relative overflow-hidden"
+			style={{
+				background: 'linear-gradient(135deg, #1f2937, #374151)',
+			}}
+		>
+			<div className="absolute top-0 left-0 w-full h-full animate-pulse-slow bg-gradient-to-br from-indigo-500/20 to-purple-500/20 opacity-40 mix-blend-multiply pointer-events-none" />
+			<Navbar onNavigate={onNavigate} />
+			<main className="flex-grow pt-24 pb-12">
+				<div className="max-w-7xl mx-auto px-6">
+					{/* --- REVISED DASHBOARD HEADING WITH SMOOTHER ANIMATION --- */}
+					<motion.h2
+						initial={{ opacity: 0, x: -100 }}
+						animate={{ opacity: 1, x: 0 }}
+						transition={{ duration: 0.8, ease: 'easeOut' }}
+						className="text-4xl md:text-6xl font-extrabold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400"
+					>
+						Dashboard
+					</motion.h2>
+
+					<motion.div
+						className="relative"
+						variants={floatAnimation}
+						initial="initial"
+						animate="animate"
+					>
+						{dashboardContent}
+					</motion.div>
+				</div>
+			</main>
+			<Footer onNavigate={onNavigate} />
+			<svg className="hidden">
+				<defs>
+					<linearGradient id="colorLineGradient" x1="0" y1="0" x2="1" y2="0">
+						<stop offset="0%" stopColor="#ef4444" />
+						<stop offset="25%" stopColor="#f97316" />
+						<stop offset="50%" stopColor="#eab308" />
+						<stop offset="75%" stopColor="#84cc16" />
+						<stop offset="100%" stopColor="#22c55e" />
+					</linearGradient>
+				</defs>
+			</svg>
+		</div>
+	);
 }
