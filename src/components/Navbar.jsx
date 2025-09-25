@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Sun, Moon, BarChart3 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { SignOut } from '../features/auth/authSlice';
+import { getStudentsAttendance } from '../features/attendanceRecord/recordsSlice';
 
 export default function Navbar() {
 	const dispatch = useDispatch();

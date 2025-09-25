@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
 	LineChart,
@@ -11,11 +11,18 @@ import {
 } from 'recharts';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { useAuth } from '../context/AuthContext';
 import QRGenerator from '../components/QRGenerator';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+	getClassSessions,
+	getEnrolled,
+	getStudents,
+	getStudentsAttendance,
+	reset,
+} from '../features/attendanceRecord/recordsSlice';
 
+let attendanceP;
 // --- NEW COMPONENT: ANIMATED STAT CARD ---
 const StatCard = ({ title, value, unit, delay = 0.2, colors }) => (
 	<motion.div
@@ -38,21 +45,34 @@ const StatCard = ({ title, value, unit, delay = 0.2, colors }) => (
 );
 
 // Animated attendance progress bar for students
-const AttendanceProgress = ({ myStudent, sessions }) => {
-	const totalSessions = sessions?.length || 1;
-	const attendedSessions = myStudent?.attendedSessions?.length || 0;
-	const attendancePercentage = (attendedSessions / totalSessions) * 100;
+const AttendanceProgress = ({ class_code }) => {
+	const dispatch = useDispatch();
+	const { attendance, sessions } = useSelector((state) => state.records);
+	if (class_code === null) return null;
+
+	useEffect(() => {
+		if (class_code) {
+			dispatch(reset());
+			dispatch(getClassSessions(class_code));
+			dispatch(getStudentsAttendance(class_code));
+		}
+	}, [dispatch, class_code]);
+
+	const totalSessions = sessions?.length || 0;
+	const attendedSessions = attendance?.length || 0;
+	const attendancePercentage =
+		totalSessions > 0 ? (attendedSessions / totalSessions) * 100 : 0;
 
 	let progressColor = 'bg-green-500';
 	let textColor = 'text-green-500';
-	if (attendancePercentage < 75) {
+	if (attendancePercentage < 75 && attendancePercentage >= 50) {
 		progressColor = 'bg-orange-500';
 		textColor = 'text-orange-500';
-	}
-	if (attendancePercentage < 50) {
+	} else if (attendancePercentage < 50) {
 		progressColor = 'bg-red-500';
 		textColor = 'text-red-500';
 	}
+	attendanceP = attendancePercentage;
 
 	return (
 		<motion.div
@@ -104,22 +124,12 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 // Student Card component with new hover effects
-const NewStudentCard = ({ s }) => (
+const NewStudentCard = ({ name }) => (
 	<motion.div
-		className="p-4 rounded-xl shadow-lg bg-white dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
-		whileHover={{
-			y: -4,
-			scale: 1.01,
-			boxShadow: '0 10px 20px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.05)',
-			rotate: '1.5deg',
-		}}
-		whileTap={{ scale: 0.98, rotate: '0deg' }}
-		transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+		className={`p-4 rounded-xl shadow-lg bg-white dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 `}
+		whileHover={{ y: -4, scale: 1.01 }}
 	>
-		<h4 className="text-md font-bold text-gray-800 dark:text-gray-100">
-			{s.name}
-		</h4>
-		<p className="text-sm text-gray-500 dark:text-gray-400">{s.email}</p>
+		<h4 className="text-md font-bold">{name}</h4>
 	</motion.div>
 );
 
@@ -148,26 +158,42 @@ const itemVariants = {
 };
 
 export default function Dashboard() {
+	const dispatch = useDispatch();
 	const navigate = useNavigate();
-	const [students, setStudents] = useState([]);
-	const [sessions, setSessions] = useState([]);
+	const [subject, setSubject] = useState(
+		localStorage.getItem('subject') ? localStorage.getItem('subject') : null
+	);
 	const [myStudent, setMyStudent] = useState(null);
 
-	const { user } = useSelector((state) => state.auth);
+	const [chartData, setChartData] = useState([]);
 
-	// useEffect(() => {
-	//   if (!user) {
-	//     navigate("/login");
-	//     return;
-	//   }
-	//   setStudents(JSON.parse(localStorage.getItem("attend_students")) || []);
-	//   setSessions(JSON.parse(localStorage.getItem("attend_sessions")) || []);
-	//   if (user.role === "student") {
-	//     const studs = JSON.parse(localStorage.getItem("attend_students")) || [];
-	//     const me = studs.find((s) => s.email === user.email);
-	//     setMyStudent(me || null);
-	//   }
-	// }, [user, navigate]);
+	const { user } = useSelector((state) => state.auth);
+	const {
+		students,
+		sessions = [],
+		attendance = [],
+		enrolled,
+		isError,
+		isSuccess,
+		isLoading,
+	} = useSelector((state) => state.records);
+
+	useEffect(() => {
+		if (!user) navigate('/signup');
+	}, [user, navigate]);
+	useEffect(() => {
+		dispatch(getEnrolled());
+	}, [dispatch]);
+
+	useEffect(() => {
+		localStorage.setItem('subject', subject);
+	}, [subject]);
+
+	useEffect(() => {
+		if (isSuccess) {
+			dispatch(reset());
+		}
+	}, [isSuccess, dispatch, reset]);
 
 	const onNavigate = (newPath) => {
 		navigate(newPath);
@@ -175,25 +201,38 @@ export default function Dashboard() {
 	};
 
 	useEffect(() => {
-		if (user == null) navigate('/signup');
-	}, [user, navigate]);
+		if (!sessions || !students || !attendance) return;
 
-	const name = user?.email.split('_')[0];
-	console.log(name);
+		// Take last 7 sessions
+		const last7Sessions = Array.isArray(sessions) ? sessions.slice(-7) : [];
 
-	const chartData = (() => {
-		const s = sessions.slice(-7);
-		return s.map((sess) => {
-			const total = students.length || 1;
-			const attendCount = students.filter((st) =>
-				(st.attendedSessions || []).includes(sess.id)
+		const data = last7Sessions.map((sess) => {
+			// Exclude logged-in user from total count
+			const totalStudents = students.filter(
+				(s) => s.user_id !== user?.id
 			).length;
+
+			// Count students who were present in this session
+			const attendCount = attendance.filter(
+				(att) =>
+					att.session_id === sess.session_id &&
+					att.present &&
+					att.student_id !== user?.id // optional: exclude self if needed
+			).length;
+
 			return {
-				name: new Date(sess.createdAt).toLocaleDateString(),
-				'Attendance %': Math.round((attendCount / total) * 100),
+				name: sess.date
+					? new Date(sess.date).toLocaleDateString()
+					: `Session ${sess.session_id}`, // fallback if date is null
+				'Attendance %':
+					totalStudents > 0
+						? Math.round((attendCount / totalStudents) * 100)
+						: 0,
 			};
 		});
-	})();
+
+		setChartData(data);
+	}, [sessions, students, attendance]);
 
 	const markPresentManual = () => {
 		const currentSession = localStorage.getItem('attend_currentSession');
@@ -211,13 +250,72 @@ export default function Dashboard() {
 		alert('Marked present ✅');
 	};
 
+	const handleChange = (e) => {
+		setSubject(e.target.value);
+	};
+
+	const handleFaculty = (e) => {
+		setSubject(e.target.value);
+		dispatch(getStudents(subject));
+		dispatch(getClassSessions(subject));
+		dispatch(getStudentsAttendance(subject));
+	};
+
+	let name = user ? user.email : 'Guest';
+	if (user) {
+		name = name.split('_')[0];
+		name = name[0].toUpperCase() + name.slice(1);
+	}
+
 	const dashboardContent =
 		user?.role === 'faculty' ? (
 			<>
+				<div className="mb-15">
+					{enrolled?.length === 0 ? (
+						<p>Not enrolled.</p>
+					) : (
+						<div className="relative w-full max-w-3xl mx-auto">
+							<select
+								id="class-select"
+								value={subject}
+								onChange={handleFaculty}
+								disabled={!enrolled || enrolled.length === 0}
+								className="block w-full px-6 py-4 pr-12 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+							>
+								<option value="" disabled>
+									Select Class
+								</option>
+								{[
+									...new Map(enrolled.map((e) => [e.class_id, e])).values(),
+								].map((enr) => (
+									<option value={enr.class_id} key={enr.class_id}>
+										{enr.classes.class_name}
+									</option>
+								))}
+							</select>
+
+							{/* Down arrow icon */}
+							<div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-400">
+								<svg
+									className="h-6 w-6"
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 20 20"
+									fill="currentColor"
+								>
+									<path
+										fillRule="evenodd"
+										d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							</div>
+						</div>
+					)}
+				</div>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
 					<StatCard
 						title="Total Students"
-						value={students.length}
+						value={students.length - 1}
 						unit=""
 						colors={{
 							bg: 'bg-indigo-50/70 dark:bg-indigo-950/70',
@@ -313,11 +411,13 @@ export default function Dashboard() {
 								animate="visible"
 								className="grid md:grid-cols-2 gap-6"
 							>
-								{(students || []).map((s) => (
-									<motion.div key={s.id} variants={itemVariants}>
-										<NewStudentCard s={s} />
-									</motion.div>
-								))}
+								{students
+									.filter((s) => s.user_id !== user?.id) // exclude logged-in user
+									.map((s) => (
+										<motion.div key={s.user_id} variants={itemVariants}>
+											<NewStudentCard name={s.role_name} />
+										</motion.div>
+									))}
 							</motion.div>
 							{!students.length && (
 								<p className="text-center text-gray-500 dark:text-gray-400 mt-8">
@@ -345,31 +445,25 @@ export default function Dashboard() {
 							<h4 className="font-semibold text-lg mb-4">Recent Sessions</h4>
 							<ul className="space-y-3">
 								<AnimatePresence>
-									{(sessions || []).slice(0, 5).map((sess) => (
-										<motion.li
-											key={sess.id}
-											initial={{ opacity: 0, y: -10 }}
-											animate={{ opacity: 1, y: 0 }}
-											exit={{ opacity: 0, x: -20 }}
-											transition={{ duration: 0.3 }}
-											className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md transition-colors"
-										>
-											<div className="flex justify-between items-center">
-												<span className="text-sm font-medium">
-													{new Date(sess.createdAt).toLocaleDateString()}
-												</span>
-												<span className="text-xs text-gray-500 dark:text-gray-400">
-													{new Date(sess.createdAt).toLocaleTimeString()}
-												</span>
-											</div>
-										</motion.li>
-									))}
+									{Array.isArray(sessions) && sessions.length > 0 ? (
+										sessions.slice(0, 5).map((s) => (
+											<motion.li
+												key={s.session_id}
+												initial={{ opacity: 0, y: -10 }}
+												animate={{ opacity: 1, y: 0 }}
+												exit={{ opacity: 0, x: -20 }}
+												transition={{ duration: 0.3 }}
+												className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md transition-colors"
+											>
+												{s.date}
+											</motion.li>
+										))
+									) : (
+										<li className="text-sm text-gray-500 dark:text-gray-400">
+											No sessions yet.
+										</li>
+									)}
 								</AnimatePresence>
-								{!sessions.length && (
-									<li className="text-sm text-gray-500 dark:text-gray-400">
-										No sessions yet.
-									</li>
-								)}
 							</ul>
 						</motion.div>
 					</div>
@@ -393,12 +487,53 @@ export default function Dashboard() {
 								Your personalized attendance and analytics are ready.
 							</p>
 						</motion.div>
+						<div>
+							{enrolled?.length === 0 ? (
+								<p>Not enrolled.</p>
+							) : (
+								<div className="relative w-full max-w-3xl mx-auto">
+									<select
+										id="class-select"
+										value={subject}
+										onChange={handleChange}
+										disabled={!enrolled || enrolled.length === 0}
+										className="block w-full px-6 py-4 pr-12 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+									>
+										<option value="" disabled>
+											Select Class
+										</option>
+										{enrolled &&
+											enrolled.map((enr) => (
+												<option value={enr.class_id} key={enr.class_id}>
+													{enr.classes.class_name}
+												</option>
+											))}
+									</select>
+
+									{/* Down arrow icon */}
+									<div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-400">
+										<svg
+											className="h-6 w-6"
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 20 20"
+											fill="currentColor"
+										>
+											<path
+												fillRule="evenodd"
+												d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+												clipRule="evenodd"
+											/>
+										</svg>
+									</div>
+								</div>
+							)}
+						</div>
 						<motion.div
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.8, delay: 0.2 }}
 						>
-							<AttendanceProgress myStudent={myStudent} sessions={sessions} />
+							{subject && <AttendanceProgress class_code={subject} />}
 						</motion.div>
 						<motion.div
 							initial={{ opacity: 0, y: 20 }}
@@ -409,18 +544,12 @@ export default function Dashboard() {
 							<h4 className="font-semibold text-lg mb-2">Notifications</h4>
 							<div
 								className={`text-sm py-2 px-3 rounded-lg border ${
-									((myStudent?.attendedSessions?.length || 0) /
-										(sessions?.length || 1)) *
-										100 <
-									75
+									attendanceP < 75
 										? 'bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:border-red-800 dark:text-red-300'
 										: 'bg-green-50 text-green-700 border-green-300 dark:bg-green-950 dark:border-green-800 dark:text-green-300'
 								}`}
 							>
-								{((myStudent?.attendedSessions?.length || 0) /
-									(sessions?.length || 1)) *
-									100 <
-								75 ? (
+								{attendanceP < 75 ? (
 									<span>
 										⚠️ Your attendance is below 75%. Please attend classes
 										regularly.
@@ -444,7 +573,7 @@ export default function Dashboard() {
 								<motion.button
 									whileHover={{ scale: 1.01 }}
 									whileTap={{ scale: 0.99 }}
-									onClick={markPresentManual}
+									// onClick={d}
 									className="w-full py-3 px-4 rounded-full bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition transform"
 								>
 									Scan & Mark Present

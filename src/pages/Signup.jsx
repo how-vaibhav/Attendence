@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useSelector, useDispatch } from 'react-redux';
@@ -27,9 +26,8 @@ export default function Signup() {
 	const navigate = useNavigate();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
-	const [err, setErr] = useState(null);
-	const [loading, setLoading] = useState(false);
 	const [particles, setParticles] = useState([]);
+	let error, errMessage;
 
 	// Corrected: Moved the useSelector hook here so 'user' is available
 	const { user, isError, isSuccess, isLoading, message } = useSelector(
@@ -157,7 +155,7 @@ export default function Signup() {
 						<div>
 							<motion.button
 								type="submit"
-								disabled={loading}
+								disabled={isLoading}
 								whileHover={{ scale: 1.02 }}
 								whileTap={{ scale: 0.98 }}
 								className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -174,7 +172,7 @@ export default function Signup() {
 								exit={{ opacity: 0, y: -10 }}
 								className="mt-2 text-center text-red-600 dark:text-red-400 text-sm font-semibold"
 							>
-								{isError}
+								{errMessage}
 							</motion.p>
 						)}
 					</AnimatePresence>
