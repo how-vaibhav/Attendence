@@ -27,7 +27,7 @@ export const register = createAsyncThunk(
 
 		if (error) return thunkAPI.rejectWithValue(error.message);
 
-		const { user } = data.user;
+		const { user } = data;
 		const role = getRole(email);
 
 		const cleanUserData = {
@@ -64,6 +64,9 @@ export const SignIn = createAsyncThunk(
 			email: user.email,
 			role: roleData.role,
 		};
+
+		localStorage.setItem('user-tally', JSON.stringify(cleanUserData));
+
 		return cleanUserData;
 	}
 );
@@ -98,6 +101,7 @@ const authSlice = createSlice({
 				state.isSuccess = false;
 				state.isError = true;
 				state.message = action.payload;
+				localStorage.removeItem('user-tally');
 			})
 			.addCase(register.fulfilled, (state, action) => {
 				state.isLoading = false;
@@ -115,6 +119,7 @@ const authSlice = createSlice({
 				state.isSuccess = false;
 				state.isError = true;
 				state.message = action.payload;
+				localStorage.removeItem('user-tally');
 			})
 			.addCase(SignIn.fulfilled, (state, action) => {
 				state.isLoading = false;
