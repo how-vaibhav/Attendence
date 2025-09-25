@@ -270,19 +270,20 @@ export default function Dashboard() {
 	const dashboardContent =
 		user?.role === 'faculty' ? (
 			<>
-				<div>
+				<div className="mb-15">
 					{enrolled?.length === 0 ? (
 						<p>Not enrolled.</p>
 					) : (
-						<div className="relative overflow-visible">
+						<div className="relative w-full max-w-3xl mx-auto">
 							<select
 								id="class-select"
 								value={subject}
 								onChange={handleFaculty}
 								disabled={!enrolled || enrolled.length === 0}
+								className="block w-full px-6 py-4 pr-12 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
 							>
 								<option value="" disabled>
-									-----
+									Select Class
 								</option>
 								{[
 									...new Map(enrolled.map((e) => [e.class_id, e])).values(),
@@ -292,6 +293,22 @@ export default function Dashboard() {
 									</option>
 								))}
 							</select>
+
+							{/* Down arrow icon */}
+							<div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-400">
+								<svg
+									className="h-6 w-6"
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 20 20"
+									fill="currentColor"
+								>
+									<path
+										fillRule="evenodd"
+										d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							</div>
 						</div>
 					)}
 				</div>
@@ -428,24 +445,25 @@ export default function Dashboard() {
 							<h4 className="font-semibold text-lg mb-4">Recent Sessions</h4>
 							<ul className="space-y-3">
 								<AnimatePresence>
-									{(sessions || []).slice(0, 5).map((s) => (
-										<motion.li
-											key={s.session_id}
-											initial={{ opacity: 0, y: -10 }}
-											animate={{ opacity: 1, y: 0 }}
-											exit={{ opacity: 0, x: -20 }}
-											transition={{ duration: 0.3 }}
-											className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md transition-colors"
-										>
-											{s.date}
-										</motion.li>
-									))}
+									{Array.isArray(sessions) && sessions.length > 0 ? (
+										sessions.slice(0, 5).map((s) => (
+											<motion.li
+												key={s.session_id}
+												initial={{ opacity: 0, y: -10 }}
+												animate={{ opacity: 1, y: 0 }}
+												exit={{ opacity: 0, x: -20 }}
+												transition={{ duration: 0.3 }}
+												className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md transition-colors"
+											>
+												{s.date}
+											</motion.li>
+										))
+									) : (
+										<li className="text-sm text-gray-500 dark:text-gray-400">
+											No sessions yet.
+										</li>
+									)}
 								</AnimatePresence>
-								{!sessions.length && (
-									<li className="text-sm text-gray-500 dark:text-gray-400">
-										No sessions yet.
-									</li>
-								)}
 							</ul>
 						</motion.div>
 					</div>
@@ -473,15 +491,16 @@ export default function Dashboard() {
 							{enrolled?.length === 0 ? (
 								<p>Not enrolled.</p>
 							) : (
-								<div>
+								<div className="relative w-full max-w-3xl mx-auto">
 									<select
 										id="class-select"
 										value={subject}
 										onChange={handleChange}
 										disabled={!enrolled || enrolled.length === 0}
+										className="block w-full px-6 py-4 pr-12 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
 									>
 										<option value="" disabled>
-											-----
+											Select Class
 										</option>
 										{enrolled &&
 											enrolled.map((enr) => (
@@ -490,6 +509,22 @@ export default function Dashboard() {
 												</option>
 											))}
 									</select>
+
+									{/* Down arrow icon */}
+									<div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-400">
+										<svg
+											className="h-6 w-6"
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 20 20"
+											fill="currentColor"
+										>
+											<path
+												fillRule="evenodd"
+												d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+												clipRule="evenodd"
+											/>
+										</svg>
+									</div>
 								</div>
 							)}
 						</div>
