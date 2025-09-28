@@ -17,12 +17,15 @@ const initialState = {
 	message: '',
 };
 
+//TODO
 export const getStudents = createAsyncThunk(
 	'students/enrolled',
-	async (class_id) => {
+	async (class_id, thunkAPI) => {
 		const {
 			data: { user },
 		} = await supabase.auth.getUser();
+
+		if (!user) return thunkAPI.rejectWithValue('No user found!');
 
 		const {
 			data: { role },
@@ -45,6 +48,7 @@ export const getStudents = createAsyncThunk(
 	}
 );
 
+//TODO
 export const getStudentsAttendance = createAsyncThunk(
 	'student/attendance',
 	async (classId, thunkAPI) => {
@@ -52,7 +56,8 @@ export const getStudentsAttendance = createAsyncThunk(
 			data: { user },
 		} = await supabase.auth.getUser();
 
-		if (!user) return thunkAPI.rejectWithValue('No authenticated user');
+		if (!user)
+			return thunkAPI.rejectWithValue('No authenticated user. Attendance');
 
 		const studentUid = user.id;
 
@@ -87,27 +92,54 @@ export const getStudentsAttendance = createAsyncThunk(
 	}
 );
 
-export const getEnrolled = createAsyncThunk('/enrolled', async (thunkAPI) => {
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
+//TODO
+export const getEnrolled = createAsyncThunk(
+	'/enrolled',
+	async (_, thunkAPI) => {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
 
-	if (!user) return thunkAPI.rejectWithValue('No user found.');
+		if (!user) return thunkAPI.rejectWithValue('No user found. enroll');
 
-	const { data, error } = await supabase
-		.from('enrollment')
-		.select('class_id, classes (class_name)');
+		const { data, error } = await supabase
+			.from('enrollment')
+			.select('class_id, classes (class_name)');
 
-	if (error) return thunkAPI.rejectWithValue(error.message);
+		if (error) return thunkAPI.rejectWithValue(error.message);
 
-	localStorage.setItem('enrolled', JSON.stringify(data));
+		localStorage.setItem('enrolled', JSON.stringify(data));
 
-	return data;
-});
+		return data;
+	}
+);
 
+//Refactored
+export const facultyClasses = createAsyncThunk(
+	'/classes',
+	async (_, thunkAPI) => {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) return thunkAPI.rejectWithValue('User does not exist! faculty');
+
+		const { data, error } = await supabase
+			.from('faculty_classes')
+			.select('class_id, classes(class_name)');
+
+		if (error) return thunkAPI.rejectWithValue(error.message);
+
+		localStorage.setItem('enrolled', JSON.stringify(data));
+
+		return data;
+	}
+);
+
+//TODO
 export const getClassSessions = createAsyncThunk(
 	'sessions',
-	async (class_id) => {
+	async (class_id, thunkAPI) => {
 		// Authenticate the user to ensure they are logged in.
 		const {
 			data: { user },
@@ -115,7 +147,7 @@ export const getClassSessions = createAsyncThunk(
 
 		// If no user is authenticated, return an error message.
 		if (!user) {
-			return 'User does not exist!';
+			return 'User does not exist! Classes';
 		}
 
 		// Query the 'Sessions' table to get all sessions
@@ -181,6 +213,12 @@ const recordSlice = createSlice({
 				state.message = action.payload;
 				localStorage.removeItem('enrolled');
 			})
+			.addCase(getEnrolled.fulfilled, (state, action) => {
+				state.isLoading = false;
+				state.isSuccess = true;
+				state.isError = false;
+				state.enrolled = action.payload;
+			})
 			.addCase(getClassSessions.fulfilled, (state, action) => {
 				state.isLoading = false;
 				state.isSuccess = true;
@@ -216,6 +254,24 @@ const recordSlice = createSlice({
 				state.isError = true;
 				state.message = action.payload;
 				localStorage.removeItem('students');
+			})
+			.addCase(facultyClasses.pending, (state) => {
+				state.isLoading = true;
+				state.isSuccess = false;
+				state.isError = false;
+			})
+			.addCase(facultyClasses.rejected, (state, action) => {
+				state.isLoading = false;
+				state.isSuccess = false;
+				state.isError = true;
+				state.message = action.payload;
+				localStorage.removeItem('enrolled');
+			})
+			.addCase(facultyClasses.fulfilled, (state, action) => {
+				state.isLoading = false;
+				state.isSuccess = true;
+				state.isError = false;
+				state.enrolled = action.payload;
 			});
 	},
 });

@@ -11,38 +11,21 @@ import {
 } from 'recharts';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import QRGenerator from '../components/QRGenerator';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
+	facultyClasses,
 	getClassSessions,
 	getEnrolled,
 	getStudents,
 	getStudentsAttendance,
 	reset,
 } from '../features/attendanceRecord/recordsSlice';
+import { StatCard } from '../components/StatCard';
+import AdminDashboard from '../components/AdminDashboard';
 
 let attendanceP;
 // --- NEW COMPONENT: ANIMATED STAT CARD ---
-const StatCard = ({ title, value, unit, delay = 0.2, colors }) => (
-	<motion.div
-		initial={{ opacity: 0, scale: 0.95 }}
-		animate={{ opacity: 1, scale: 1 }}
-		transition={{ duration: 0.6, delay }}
-		whileHover={{ y: -5, scale: 1.05 }}
-		className={`bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50 ${colors.bg}`}
-	>
-		<p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-			{title}
-		</p>
-		<h3 className={`text-3xl font-extrabold mt-1 ${colors.text}`}>
-			<span className="count-up">{value}</span>
-			<span className="text-xl font-semibold text-gray-700 dark:text-gray-200 ml-1">
-				{unit}
-			</span>
-		</h3>
-	</motion.div>
-);
 
 // Animated attendance progress bar for students
 const AttendanceProgress = ({ class_code }) => {
@@ -114,47 +97,13 @@ const CustomTooltip = ({ active, payload, label }) => {
 		return (
 			<div className="bg-gray-900/80 dark:bg-gray-200/80 backdrop-blur-md rounded-lg p-4 shadow-lg border border-gray-700 dark:border-gray-300">
 				<p className="text-sm font-semibold text-white dark:text-gray-900 mb-1">
-					{label}
+					{label} this is custom
 				</p>
 				<p className="text-xs text-indigo-300 dark:text-indigo-600">{`Attendance: ${payload[0].value}%`}</p>
 			</div>
 		);
 	}
 	return null;
-};
-
-// Student Card component with new hover effects
-const NewStudentCard = ({ name }) => (
-	<motion.div
-		className={`p-4 rounded-xl shadow-lg bg-white dark:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 `}
-		whileHover={{ y: -4, scale: 1.01 }}
-	>
-		<h4 className="text-md font-bold">{name}</h4>
-	</motion.div>
-);
-
-// Variants for list staggering animation
-const containerVariants = {
-	hidden: { opacity: 0 },
-	visible: {
-		opacity: 1,
-		transition: {
-			staggerChildren: 0.1,
-		},
-	},
-};
-
-const itemVariants = {
-	hidden: { opacity: 0, y: 20 },
-	visible: {
-		opacity: 1,
-		y: 0,
-		transition: {
-			type: 'spring',
-			stiffness: 400,
-			damping: 10,
-		},
-	},
 };
 
 export default function Dashboard() {
@@ -164,8 +113,6 @@ export default function Dashboard() {
 		localStorage.getItem('subject') ? localStorage.getItem('subject') : null
 	);
 	const [myStudent, setMyStudent] = useState(null);
-
-	const [chartData, setChartData] = useState([]);
 
 	const { user } = useSelector((state) => state.auth);
 	const {
@@ -177,6 +124,10 @@ export default function Dashboard() {
 		isSuccess,
 		isLoading,
 	} = useSelector((state) => state.records);
+
+	useEffect(() => {
+		dispatch(facultyClasses());
+	}, [dispatch]);
 
 	useEffect(() => {
 		if (!user) navigate('/signup');
@@ -200,40 +151,6 @@ export default function Dashboard() {
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	};
 
-	useEffect(() => {
-		if (!sessions || !students || !attendance) return;
-
-		// Take last 7 sessions
-		const last7Sessions = Array.isArray(sessions) ? sessions.slice(-7) : [];
-
-		const data = last7Sessions.map((sess) => {
-			// Exclude logged-in user from total count
-			const totalStudents = students.filter(
-				(s) => s.user_id !== user?.id
-			).length;
-
-			// Count students who were present in this session
-			const attendCount = attendance.filter(
-				(att) =>
-					att.session_id === sess.session_id &&
-					att.present &&
-					att.student_id !== user?.id // optional: exclude self if needed
-			).length;
-
-			return {
-				name: sess.date
-					? new Date(sess.date).toLocaleDateString()
-					: `Session ${sess.session_id}`, // fallback if date is null
-				'Attendance %':
-					totalStudents > 0
-						? Math.round((attendCount / totalStudents) * 100)
-						: 0,
-			};
-		});
-
-		setChartData(data);
-	}, [sessions, students, attendance]);
-
 	const markPresentManual = () => {
 		const currentSession = localStorage.getItem('attend_currentSession');
 		if (!currentSession)
@@ -254,13 +171,6 @@ export default function Dashboard() {
 		setSubject(e.target.value);
 	};
 
-	const handleFaculty = (e) => {
-		setSubject(e.target.value);
-		dispatch(getStudents(subject));
-		dispatch(getClassSessions(subject));
-		dispatch(getStudentsAttendance(subject));
-	};
-
 	let name = user ? user.email : 'Guest';
 	if (user) {
 		name = name.split('_')[0];
@@ -269,206 +179,7 @@ export default function Dashboard() {
 
 	const dashboardContent =
 		user?.role === 'faculty' ? (
-			<>
-				<div className="mb-15">
-					{enrolled?.length === 0 ? (
-						<p>Not enrolled.</p>
-					) : (
-						<div className="relative w-full max-w-3xl mx-auto">
-							<select
-								id="class-select"
-								value={subject}
-								onChange={handleFaculty}
-								disabled={!enrolled || enrolled.length === 0}
-								className="block w-full px-6 py-4 pr-12 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-							>
-								<option value="" disabled>
-									Select Class
-								</option>
-								{[
-									...new Map(enrolled.map((e) => [e.class_id, e])).values(),
-								].map((enr) => (
-									<option value={enr.class_id} key={enr.class_id}>
-										{enr.classes.class_name}
-									</option>
-								))}
-							</select>
-
-							{/* Down arrow icon */}
-							<div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-400">
-								<svg
-									className="h-6 w-6"
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 20 20"
-									fill="currentColor"
-								>
-									<path
-										fillRule="evenodd"
-										d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
-										clipRule="evenodd"
-									/>
-								</svg>
-							</div>
-						</div>
-					)}
-				</div>
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-					<StatCard
-						title="Total Students"
-						value={students.length - 1}
-						unit=""
-						colors={{
-							bg: 'bg-indigo-50/70 dark:bg-indigo-950/70',
-							text: 'text-indigo-600 dark:text-indigo-400',
-						}}
-						delay={0.1}
-					/>
-					<StatCard
-						title="Total Sessions"
-						value={sessions.length}
-						unit=""
-						colors={{
-							bg: 'bg-green-50/70 dark:bg-green-950/70',
-							text: 'text-green-600 dark:text-green-400',
-						}}
-						delay={0.2}
-					/>
-					<StatCard
-						title="Average Attendance"
-						value={
-							chartData.length
-								? (
-										chartData.reduce(
-											(acc, curr) => acc + curr['Attendance %'],
-											0
-										) / chartData.length
-								  ).toFixed(0)
-								: 0
-						}
-						unit="%"
-						colors={{
-							bg: 'bg-purple-50/70 dark:bg-purple-950/70',
-							text: 'text-purple-600 dark:text-purple-400',
-						}}
-						delay={0.3}
-					/>
-				</div>
-
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-					<div className="lg:col-span-2 space-y-8">
-						<motion.div
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.8 }}
-							className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-8 shadow-lg border border-white/20 dark:border-gray-700/50"
-						>
-							<h3 className="font-bold text-2xl text-indigo-700 dark:text-indigo-400 mb-2">
-								Class Attendance Trend
-							</h3>
-							<p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-								Insights from the last 7 sessions.
-							</p>
-							{chartData.length ? (
-								<div style={{ height: 260 }}>
-									<ResponsiveContainer width="100%" height="100%">
-										<LineChart data={chartData}>
-											<CartesianGrid
-												strokeDasharray="3 3"
-												strokeOpacity={0.5}
-											/>
-											<XAxis dataKey="name" stroke="#888" />
-											<YAxis stroke="#888" />
-											<Tooltip content={<CustomTooltip />} />
-											<Line
-												type="monotone"
-												dataKey="Attendance %"
-												stroke="url(#colorLineGradient)"
-												strokeWidth={4}
-												dot={{ stroke: '#8b5cf6', strokeWidth: 2, r: 5 }}
-												activeDot={{ r: 8, stroke: '#8b5cf6', strokeWidth: 2 }}
-												isAnimationActive={true}
-												animationDuration={1500}
-												animationEasing="ease-in-out"
-											/>
-										</LineChart>
-									</ResponsiveContainer>
-								</div>
-							) : (
-								<div className="min-h-[260px] flex items-center justify-center">
-									<p className="text-md text-gray-500 dark:text-gray-400">
-										No sessions yet — start a session to view analytics.
-									</p>
-								</div>
-							)}
-						</motion.div>
-						<div className="mt-8">
-							<h3 className="font-bold text-2xl text-gray-800 dark:text-gray-100 mb-4">
-								Student List
-							</h3>
-							<motion.div
-								variants={containerVariants}
-								initial="hidden"
-								animate="visible"
-								className="grid md:grid-cols-2 gap-6"
-							>
-								{students
-									.filter((s) => s.user_id !== user?.id) // exclude logged-in user
-									.map((s) => (
-										<motion.div key={s.user_id} variants={itemVariants}>
-											<NewStudentCard name={s.role_name} />
-										</motion.div>
-									))}
-							</motion.div>
-							{!students.length && (
-								<p className="text-center text-gray-500 dark:text-gray-400 mt-8">
-									No students enrolled yet.
-								</p>
-							)}
-						</div>
-					</div>
-					<div className="space-y-8">
-						<motion.div
-							initial={{ opacity: 0, scale: 0.95 }}
-							animate={{ opacity: 1, scale: 1 }}
-							transition={{ duration: 0.6, delay: 0.2 }}
-							whileHover={{ scale: 1.02 }}
-						>
-							<QRGenerator />
-						</motion.div>
-						<motion.div
-							initial={{ opacity: 0, scale: 0.95 }}
-							animate={{ opacity: 1, scale: 1 }}
-							transition={{ duration: 0.6, delay: 0.3 }}
-							whileHover={{ scale: 1.02 }}
-							className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/20 dark:border-gray-700/50"
-						>
-							<h4 className="font-semibold text-lg mb-4">Recent Sessions</h4>
-							<ul className="space-y-3">
-								<AnimatePresence>
-									{Array.isArray(sessions) && sessions.length > 0 ? (
-										sessions.slice(0, 5).map((s) => (
-											<motion.li
-												key={s.session_id}
-												initial={{ opacity: 0, y: -10 }}
-												animate={{ opacity: 1, y: 0 }}
-												exit={{ opacity: 0, x: -20 }}
-												transition={{ duration: 0.3 }}
-												className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md transition-colors"
-											>
-												{s.date}
-											</motion.li>
-										))
-									) : (
-										<li className="text-sm text-gray-500 dark:text-gray-400">
-											No sessions yet.
-										</li>
-									)}
-								</AnimatePresence>
-							</ul>
-						</motion.div>
-					</div>
-				</div>
-			</>
+			<AdminDashboard />
 		) : (
 			// Student View
 			<>
