@@ -78,6 +78,10 @@ const AdminDashboard = () => {
 	} = useSelector((state) => state.records);
 
 	useEffect(() => {
+		localStorage.setItem('subject', subject);
+	}, [subject]);
+
+	useEffect(() => {
 		dispatch(facultyClasses());
 	}, [dispatch]);
 

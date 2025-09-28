@@ -77,6 +77,11 @@ export const SignOut = createAsyncThunk('auth/signout', async (thunkAPI) => {
 	if (error) return thunkAPI.rejectWithValue(error.message);
 
 	localStorage.removeItem('user-tally');
+	localStorage.removeItem('enrolled');
+	localStorage.removeItem('students');
+	localStorage.removeItem('attendance');
+	localStorage.removeItem('sessions');
+	localStorage.removeItem('subject');
 });
 
 const authSlice = createSlice({
